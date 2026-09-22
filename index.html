@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="it" dir="ltr">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collezione Multimediale</title>
+    <!-- Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html5-qrcode CDN for barcode scanning -->
+    <script src="https://unpkg.com/html5-qrcode@2.1.4/minified/html5-qrcode.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body class="min-h-screen bg-slate-900 text-slate-100 transition-colors duration-300">
+    <!-- Header -->
+    <header class="container mx-auto px-4 py-6 flex justify-between items-center">
+      <h1 class="text-3xl font-extrabold tracking-tight text-purple-400">Collezione Multimediale</h1>
+      <button id="themeBtn" class="p-2 rounded-full bg-slate-800 hover:bg-slate-700 transition-colors">🌓</button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 pb-12">
+      <!-- Quick actions -->
+      <section class="mb-6 flex flex-wrap gap-2">
+        <button id="btnScan" class="btn btn-primary"><span>📷</span> Scanner codici a barre</button>
+        <button id="btnManual" class="btn btn-secondary"><span>➕</span> Aggiungi manualmente</button>
+        <button id="btnExport" class="btn btn-secondary"><span>💾</span> Esporta JSON</button>
+        <button id="btnImport" class="btn btn-secondary"><span>📥</span> Importa JSON</button>
+      </section>
+
+      <!-- Filters + Search -->
+      <section class="mb-6 flex items-center gap-3 flex-wrap">
+        <select id="filterCategoria" class="input">
+          <option value="tutti">Tutte le categorie</option>
+          <option value="libri">Libri</option>
+          <option value="fumetti">Fumetti</option>
+          <option value="musica">Musica</option>
+          <option value="video">Video</option>
+          <option value="altro">Altro</option>
+        </select>
+        <input id="searchBar" type="text" class="input flex-1 min-w-[180px]" placeholder="Cerca per titolo o autore..." autocomplete="off">
+        <button id="btnSort" class="btn btn-secondary btn-sm">🔼 Ordina</button>
+      </section>
+
+      <!-- Collection Grid -->
+      <section id="collectionGrid">
+        <div id="emptyState" class="text-center py-12 text-slate-400 hidden">
+          <p class="text-lg mb-2">La tua collezione è vuota!</p>
+          <p>Aggiungi elementi usando il pulsante "Aggiungi manualmente" o "Scanner codici a barre".</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Import file input (hidden) -->
+    <input type="file" id="importInput" accept=".json" class="hidden">
+
+    <!-- Scanner Modal -->
+    <div id="scannerModal" class="modal-overlay hidden">
+      <div class="modal p-6">
+        <button class="close-btn" aria-label="Chiudi">&times;</button>
+        <h2 class="text-xl font-bold mb-4">Scanner codice a barre / ISBN</h2>
+        <div id="reader" class="w-full max-w-sm mx-auto bg-black rounded"></div>
+        <p id="scannerStatus" class="mt-2 text-sm text-slate-400 text-center">Posiziona il codice a barre davanti alla fotocamera</p>
+      </div>
+    </div>
+
+    <!-- Manual Entry Modal -->
+    <div id="manualModal" class="modal-overlay hidden">
+      <div class="modal p-6 w-full max-w-lg">
+        <button class="close-btn" aria-label="Chiudi">&times;</button>
+        <h2 class="text-xl font-bold mb-4">Aggiungi elemento</h2>
+        <form id="manualForm" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><input id="fTitolo" type="text" class="input" placeholder="Titolo *" required></div>
+            <div><select id="fCat" class="input">
+              <option value="libri">Libro</option>
+              <option value="fumetti">Fumetto</option>
+              <option value="musica">Musica</option>
+              <option value="video">Film/DVD</option>
+              <option value="altro">Altro</option>
+            </select></div>
+          </div>
+          <input id="fAutore" type="text" class="input" placeholder="Autore / Artista">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <input id="fAnno" type="number" class="input" placeholder="Anno Pubblicazione">
+            <input id="fImmagine" type="url" class="input" placeholder="URL Copertina (opzionale)">
+          </div>
+          <textarea id="fNote" class="input" rows="3" placeholder="Note / Condizioni"></textarea>
+          <button type="submit" class="btn btn-primary w-full">Salva elemento</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="app.js"></script>
+  </body>
+</html>
