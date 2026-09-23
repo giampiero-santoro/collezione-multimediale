@@ -473,12 +473,12 @@ async function lookupBarcode(rawCode) {
     let result = null;
 
     if (looksLikeIsbn(code)) {
-      // Libri e fumetti: prima Google Books, poi Open Library come riserva
-      result = await tryGoogleBooks(code);
-      console.info('[Teca] Risultato Google Books:', result);
+      // Libri e fumetti: prima Open Library, poi Google Books come riserva
+      result = await tryOpenLibrary(code);
+      console.info('[Teca] Risultato Open Library:', result);
       if (!result) {
-        result = await tryOpenLibrary(code);
-        console.info('[Teca] Risultato Open Library:', result);
+        result = await tryGoogleBooks(code);
+        console.info('[Teca] Risultato Google Books:', result);
       }
       if (result && !result.category) result.category = 'libro';
     }

@@ -7,7 +7,7 @@ Applicazione web statica per catalogare libri, fumetti, vinili, CD, DVD, giochi 
 - **I dati restano nel tuo browser.** La collezione viene salvata in `localStorage`: non c'è alcun server che la riceve o la conserva. Se cambi browser, dispositivo o svuoti i dati di navigazione, la collezione locale va perduta — per questo l'app include l'export/import JSON (vedi sotto).
 - **Aggiunta rapida via fotocamera.** Premendo "Aggiungi" → "Scansiona codice a barre" si attiva la fotocamera (tramite la libreria [html5-qrcode](https://github.com/mebjas/html5-qrcode)) per leggere il codice EAN/ISBN stampato sulla confezione.
 - **Compilazione automatica della scheda:**
-  - Se il codice è un **ISBN** (libri e fumetti), l'app interroga la **Google Books API** e, in caso di esito negativo, **Open Library** come riserva.
+  - Se il codice è un **ISBN** (libri e fumetti), l'app interroga **Open Library** e, in caso di esito negativo, la **Google Books API** come riserva.
   - Per **musica e film** (codici EAN/UPC generici), l'app interroga **MusicBrainz** e, se trova una corrispondenza, tenta di recuperare anche la copertina dal Cover Art Archive collegato.
   - Se nessuna API trova corrispondenze, il codice a barre viene comunque salvato nel campo dedicato e puoi completare la scheda a mano.
 - **Gestione completa (CRUD):** ogni card della griglia si apre in modifica con un click; è possibile aggiornare o eliminare l'elemento (con richiesta di conferma).
