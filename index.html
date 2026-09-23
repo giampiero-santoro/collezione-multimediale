@@ -12,6 +12,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- html5-qrcode CDN for barcode scanning -->
     <script src="zxing-browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="styles.css">
   </head>
@@ -109,7 +110,12 @@
         <button class="close-btn" aria-label="Chiudi">&times;</button>
         <h2 class="text-xl font-bold mb-4">Scanner codice a barre / ISBN</h2>
         <div id="reader" class="w-full max-w-sm mx-auto bg-black rounded"></div>
-        <p id="scannerStatus" class="mt-2 text-sm text-slate-400 text-center">Posiziona il codice a barre davanti alla fotocamera</p>
+        <canvas id="captureCanvas" class="hidden"></canvas>
+        <div class="camera-actions">
+          <button id="captureCoverBtn" type="button" class="btn btn-secondary btn-sm">Scatta foto copertina</button>
+          <button id="captureBarcodeBtn" type="button" class="btn btn-secondary btn-sm">Acquisisci barcode</button>
+        </div>
+        <p id="scannerStatus" class="mt-2 text-sm text-slate-400 text-center">Inquadra barcode o copertina. Puoi acquisire entrambi.</p>
       </div>
     </div>
 

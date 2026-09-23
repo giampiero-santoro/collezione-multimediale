@@ -7,8 +7,9 @@ Archivio digitale locale per gestire la tua collezione multimediale: libri, fume
 L'applicazione permette di:
 
 - aggiungere elementi manualmente con titolo, autore, categoria, anno, collocazione, condizione, prezzo e note
-- eseguire scansioni ISBN/codici a barre con fotocamera
-- completare automaticamente i dati tramite Google Books API per i libri
+- acquisire ISBN/EAN/UPC dalla fotocamera
+- fotografare una copertina o una confezione e leggere il testo con OCR
+- completare automaticamente i dati tramite Google Books API quando il testo o il codice identifica un libro
 - cercare e filtrare per categoria e condizione
 - ordinare la collezione per titolo o anno
 - alternare il tema chiaro/scuro
@@ -20,20 +21,21 @@ L'applicazione permette di:
 - HTML5
 - JavaScript moderno (ES6+)
 - Tailwind CSS via CDN
-- html5-qrcode per lo scanner
+- ZXing Browser per barcode 1D (EAN, UPC, ISBN)
+- Tesseract.js per OCR da foto
 - Google Books API per ISBN
 - localStorage per persistenza locale
 
 ## Come avviare
 
-1. Apri `index.html` nel browser, oppure trascina la pagina nella scheda del browser
-2. In alternativa, puoi servirlo localmente con un semplice server statico:
+1. Servi il progetto tramite `localhost` o HTTPS: la fotocamera non funziona aprendo il file direttamente con `file://`
+2. Avvia, ad esempio, un server statico:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Poi apri `http://localhost:8000`.
+Poi apri `http://localhost:8000` e autorizza l'accesso alla fotocamera.
 
 Per GitHub Pages:
 - crea un repository
@@ -54,5 +56,6 @@ collezione-multimediale/
 ## Note utili
 
 - I dati sono salvati localmente nel browser e non richiedono backend
+- OCR e ricerca metadati richiedono il caricamento delle risorse Tesseract e l'accesso alla rete
 - La Google Books API può essere soggetta a limitazioni e restrizioni in ambiente commerciale
 - Sono disponibili backup JSON e CSV per esportare la collezione e trasferirla tra dispositivi

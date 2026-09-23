@@ -261,6 +261,18 @@ main > .container {
 .close-btn { position: absolute; top: 0.8rem; right: 0.8rem; background: none; border: none; color: #94a3b8; font-size: 1.7rem; cursor: pointer; }
 .close-btn:hover { color: #fda4af; }
 
+.camera-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+
+.camera-actions .btn {
+  width: auto;
+}
+
 #manualForm {
   display: flex;
   flex-direction: column;

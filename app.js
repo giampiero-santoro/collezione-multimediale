@@ -164,6 +164,15 @@
     if (prefill.note) {
       document.getElementById('fNote').value = prefill.note;
     }
+    if (prefill.autore) {
+      document.getElementById('fAutore').value = prefill.autore;
+    }
+    if (prefill.anno) {
+      document.getElementById('fAnno').value = prefill.anno;
+    }
+    if (prefill.copertina) {
+      document.getElementById('fImmagine').value = prefill.copertina;
+    }
     if (prefill.code) {
       manualForm.dataset.scannedCode = String(prefill.code);
     }
@@ -453,6 +462,93 @@
     }
   }
 
+  function captureCameraFrame() {
+    const video = document.getElementById('scannerVideo');
+    const canvas = document.getElementById('captureCanvas');
+    if (!video || !canvas || !video.videoWidth || !video.videoHeight) {
+      throw new Error('La fotocamera non è pronta');
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.9);
+  }
+
+  async function decodeCapturedBarcode() {
+    const statusEl = document.getElementById('scannerStatus');
+    try {
+      const imageData = captureCameraFrame();
+      const reader = new ZXingBrowser.BrowserMultiFormatOneDReader();
+      const result = await reader.decodeFromImageUrl(imageData);
+      statusEl.textContent = `Codice rilevato: ${result.getText()}`;
+      enrichFromBarcode(result.getText());
+    } catch (error) {
+      statusEl.textContent = 'Barcode non riconosciuto. Avvicina il prodotto, aumenta la luce e riprova.';
+    }
+  }
+
+  async function recognizeCapturedCover() {
+    const statusEl = document.getElementById('scannerStatus');
+    try {
+      const imageData = captureCameraFrame();
+      if (typeof Tesseract === 'undefined') {
+        throw new Error('OCR non disponibile');
+      }
+
+      statusEl.textContent = 'Sto leggendo il testo della copertina...';
+      const result = await Tesseract.recognize(imageData, 'ita+eng', {
+        logger: message => {
+          if (message.status === 'recognizing text' && message.progress) {
+            statusEl.textContent = `Riconoscimento testo ${Math.round(message.progress * 100)}%...`;
+          }
+        }
+      });
+      const text = result.data.text.replace(/\s+/g, ' ').trim();
+      if (!text) throw new Error('Nessun testo rilevato');
+      await searchMetadataFromText(text);
+    } catch (error) {
+      console.error('OCR error:', error);
+      statusEl.textContent = 'Testo non riconosciuto. Scatta una foto più ravvicinata e luminosa.';
+    }
+  }
+
+  async function searchMetadataFromText(text) {
+    const statusEl = document.getElementById('scannerStatus');
+    const query = text.split(/\s+/).slice(0, 12).join(' ');
+    statusEl.textContent = 'Cerco titolo e metadati...';
+
+    try {
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=1`);
+      const data = await response.json();
+      const volume = data.items?.[0]?.volumeInfo;
+      if (volume?.title) {
+        closeScanner();
+        openManualForm({
+          titolo: volume.title,
+          categoria: 'libri',
+          note: `Testo acquisito: ${text.slice(0, 240)}`,
+          copertina: volume.imageLinks?.thumbnail || '',
+          autore: volume.authors?.join(', ') || '',
+          anno: volume.publishedDate?.split('-')[0] || ''
+        });
+        document.getElementById('fAutore').value = volume.authors?.join(', ') || '';
+        document.getElementById('fAnno').value = volume.publishedDate?.split('-')[0] || '';
+        document.getElementById('fImmagine').value = volume.imageLinks?.thumbnail || '';
+        return;
+      }
+    } catch (error) {
+      console.error('Metadata search error:', error);
+    }
+
+    closeScanner();
+    openManualForm({
+      titolo: query,
+      categoria: 'altro',
+      note: `Testo acquisito dalla fotocamera: ${text.slice(0, 240)}`
+    });
+  }
+
   function openScanner() {
     openModal('scannerModal');
     const statusEl = document.getElementById('scannerStatus');
@@ -486,6 +582,9 @@
 
     const videoElement = document.getElementById('scannerVideo');
     const codeReader = new ZXingBrowser.BrowserMultiFormatOneDReader();
+
+    document.getElementById('captureBarcodeBtn').onclick = decodeCapturedBarcode;
+    document.getElementById('captureCoverBtn').onclick = recognizeCapturedCover;
 
     ZXingBrowser.BrowserCodeReader.listVideoInputDevices()
       .then((videoInputDevices) => {
