@@ -1,1057 +1,158 @@
 <!DOCTYPE html>
-<html lang="it" class="dark">
-<head>
+<html lang="it" dir="ltr">
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vaultify - Gestione Collezione Multimediale</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Collezione Multimediale | Archivio Digitale</title>
+    <!-- Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            500: '#0284c7',
-                            600: '#0284c7',
-                            700: '#0369a1',
-                            800: '#075985',
-                            900: '#0c4a6e',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- Lucide Icons CDN -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- HTML5-QRCode Scanner CDN -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    
-    <style>
-        /* Font Inter import */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        
-        /* Custom Scrollbar per dark mode */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.6);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(51, 65, 85, 0.8);
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(71, 85, 105, 1);
-        }
-
-        /* Container dello scanner */
-        #qr-reader video {
-            object-fit: cover !important;
-            border-radius: 0.75rem;
-            width: 100% !important;
-        }
-    </style>
-</head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
-
-    <!-- Navigation Header -->
-    <header class="sticky top-0 z-30 bg-slate-900/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <!-- Brand / Logo -->
-                <div class="flex items-center gap-3">
-                    <div class="p-2 bg-sky-600/20 text-sky-400 rounded-xl border border-sky-500/30">
-                        <i data-lucide="library" class="w-6 h-6"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                            Vaultify <span class="text-xs px-2 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded-full font-normal">Media Vault</span>
-                        </h1>
-                        <p class="text-xs text-slate-400 hidden sm:block">Gestore Collezioni Multimediali</p>
-                    </div>
-                </div>
-
-                <!-- Navigation Tabs -->
-                <nav class="hidden md:flex space-x-1">
-                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn px-4 py-2 text-sm font-medium rounded-lg text-sky-400 bg-sky-950/40 border border-sky-800/50 flex items-center gap-2">
-                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Collezione
-                    </button>
-                    <button onclick="switchTab('github-guide')" id="nav-github-guide" class="nav-btn px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 flex items-center gap-2">
-                        <i data-lucide="github" class="w-4 h-4"></i> Guida GitHub Pages
-                    </button>
-                </nav>
-
-                <!-- Action Controls -->
-                <div class="flex items-center gap-2 sm:gap-3">
-                    <!-- Scanner Toggle Button -->
-                    <button onclick="openScannerModal()" class="px-3.5 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition shadow-lg shadow-emerald-900/20 flex items-center gap-2">
-                        <i data-lucide="scan-barcode" class="w-4 h-4"></i>
-                        <span class="hidden sm:inline">Scansiona</span>
-                    </button>
-
-                    <!-- Add Item Button -->
-                    <button onclick="openItemModal()" class="px-3.5 py-2 text-sm font-medium bg-sky-600 hover:bg-sky-500 text-white rounded-lg transition shadow-lg shadow-sky-900/20 flex items-center gap-2">
-                        <i data-lucide="plus" class="w-4 h-4"></i>
-                        <span class="hidden sm:inline">Aggiungi</span>
-                    </button>
-
-                    <!-- Settings / Backup Dropdown -->
-                    <div class="relative group">
-                        <button class="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition">
-                            <i data-lucide="more-vertical" class="w-5 h-5"></i>
-                        </button>
-                        <div class="absolute right-0 top-full mt-2 w-52 bg-slate-800 border border-slate-700 rounded-xl shadow-xl py-1 hidden group-hover:block z-50">
-                            <button onclick="exportData()" class="w-full px-4 py-2 text-xs text-left text-slate-300 hover:bg-slate-700 flex items-center gap-2">
-                                <i data-lucide="download" class="w-4 h-4"></i> Esporta Backup (JSON)
-                            </button>
-                            <label class="w-full px-4 py-2 text-xs text-left text-slate-300 hover:bg-slate-700 flex items-center gap-2 cursor-pointer">
-                                <i data-lucide="upload" class="w-4 h-4"></i> Importa Backup
-                                <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
-                            </label>
-                            <div class="border-t border-slate-700 my-1"></div>
-                            <button onclick="loadDemoData()" class="w-full px-4 py-2 text-xs text-left text-amber-400 hover:bg-slate-700 flex items-center gap-2">
-                                <i data-lucide="sparkles" class="w-4 h-4"></i> Carica Dati Demo
-                            </button>
-                            <button onclick="clearCollection()" class="w-full px-4 py-2 text-xs text-left text-rose-400 hover:bg-slate-700 flex items-center gap-2">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i> Svuota Collezione
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Theme Switcher -->
-                    <button onclick="toggleDarkMode()" class="p-2 text-slate-400 hover:text-amber-400 bg-slate-800 hover:bg-slate-700 rounded-lg transition">
-                        <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
-                        <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
-                    </button>
-                </div>
-            </div>
+    <!-- html5-qrcode CDN for barcode scanning -->
+    <script src="https://unpkg.com/html5-qrcode@2.1.4/minified/html5-qrcode.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body class="min-h-screen bg-slate-900 text-slate-100 transition-colors duration-300">
+    <!-- Header -->
+    <header class="container mx-auto px-4 py-6 flex justify-between items-center">
+      <div class="flex items-center gap-4">
+        <div class="brand-mark">C</div>
+        <div>
+          <h1 class="text-3xl font-extrabold tracking-tight">Collezione Multimediale</h1>
+          <p class="text-sm text-slate-300 mt-1">Archivio digitale della tua biblioteca e media collection</p>
         </div>
-
-        <!-- Mobile Nav Bar -->
-        <div class="md:hidden flex border-t border-slate-800 px-4 py-2 justify-around bg-slate-900/90">
-            <button onclick="switchTab('dashboard')" class="text-xs py-1 px-3 text-sky-400 flex items-center gap-1 font-medium">
-                <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Collezione
-            </button>
-            <button onclick="switchTab('github-guide')" class="text-xs py-1 px-3 text-slate-400 flex items-center gap-1 font-medium">
-                <i data-lucide="github" class="w-4 h-4"></i> Guida GitHub
-            </button>
-        </div>
+      </div>
+      <button id="themeBtn" class="p-2 rounded-full bg-slate-800 hover:bg-slate-700 transition-colors" aria-label="Cambia tema">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 0 1 11.2 3a9 9 0 1 0 9.8 9.8Z"/></svg>
+      </button>
     </header>
 
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 pb-12">
+      <!-- Quick actions -->
+      <section class="mb-6 flex flex-wrap gap-2">
+        <button id="btnScan" class="btn btn-primary"><span class="btn-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9V7a2 2 0 0 1 2-2h2"/><path d="M15 3h2a2 2 0 0 1 2 2v2"/><path d="M3 15v2a2 2 0 0 0 2 2h2"/><path d="M21 15v2a2 2 0 0 1-2 2h-2"/><path d="M7 9h10v6H7z"/><path d="M9 9V6"/><path d="M15 9V6"/></svg></span> Scanner codici a barre</button>
+        <button id="btnManual" class="btn btn-secondary"><span class="btn-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span> Aggiungi manualmente</button>
+        <button id="btnExport" class="btn btn-secondary"><span class="btn-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 18 5 5 5-5"/><path d="M5 21h14"/></svg></span> Esporta JSON</button>
+        <button id="btnCsv" class="btn btn-secondary"><span class="btn-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M4 20V4h16v16"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/></svg></span> Esporta CSV</button>
+        <button id="btnImport" class="btn btn-secondary"><span class="btn-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 21V9"/><path d="m7 15 5-5 5 5"/><path d="M5 3h14"/></svg></span> Importa JSON</button>
+        <button id="btnClear" class="btn btn-secondary"><span class="btn-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></span> Svuota collezione</button>
+      </section>
 
-        <!-- TAB: DASHBOARD / COLLEZIONE -->
-        <section id="tab-dashboard" class="space-y-6">
-            
-            <!-- Quick Stats Bar -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-                <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3 sm:p-4">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-slate-400 font-medium">Totale Oggetti</span>
-                        <i data-lucide="layers" class="w-4 h-4 text-sky-400"></i>
-                    </div>
-                    <div class="text-2xl font-bold text-white mt-1" id="stat-total">0</div>
-                </div>
-                <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3 sm:p-4">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-slate-400 font-medium">Libri & Fumetti</span>
-                        <i data-lucide="book-open" class="w-4 h-4 text-amber-400"></i>
-                    </div>
-                    <div class="text-2xl font-bold text-white mt-1" id="stat-books">0</div>
-                </div>
-                <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3 sm:p-4">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-slate-400 font-medium">Musica (CD/Vinili)</span>
-                        <i data-lucide="disc" class="w-4 h-4 text-purple-400"></i>
-                    </div>
-                    <div class="text-2xl font-bold text-white mt-1" id="stat-music">0</div>
-                </div>
-                <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3 sm:p-4">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-slate-400 font-medium">Film (DVD/Blu-ray)</span>
-                        <i data-lucide="film" class="w-4 h-4 text-rose-400"></i>
-                    </div>
-                    <div class="text-2xl font-bold text-white mt-1" id="stat-movies">0</div>
-                </div>
-                <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3 sm:p-4">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-slate-400 font-medium">Videogiochi</span>
-                        <i data-lucide="gamepad-2" class="w-4 h-4 text-emerald-400"></i>
-                    </div>
-                    <div class="text-2xl font-bold text-white mt-1" id="stat-games">0</div>
-                </div>
-                <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3 sm:p-4">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-slate-400 font-medium">Valore Stimato</span>
-                        <i data-lucide="banknote" class="w-4 h-4 text-teal-400"></i>
-                    </div>
-                    <div class="text-xl font-bold text-teal-400 mt-1" id="stat-value">€ 0.00</div>
-                </div>
-            </div>
+      <section class="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div id="collectionSummary" class="text-sm text-slate-300">
+          Totale: <span id="summaryTotal">0</span> elementi
+        </div>
+      </section>
 
-            <!-- Controls Toolbar -->
-            <div class="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4 flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center">
-                <!-- Search Input -->
-                <div class="relative flex-grow max-w-md">
-                    <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="search-input" oninput="renderCollection()" placeholder="Cerca per titolo, autore, note, EAN/ISBN..." 
-                        class="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-sky-500 text-white placeholder-slate-500">
-                </div>
+      <!-- Filters + Search -->
+      <section class="mb-6 flex items-center gap-3 flex-wrap">
+        <select id="filterCategoria" class="input">
+          <option value="tutti">Tutte le categorie</option>
+          <option value="libri">Libri</option>
+          <option value="fumetti">Fumetti</option>
+          <option value="musica">Musica</option>
+          <option value="video">Video</option>
+          <option value="altro">Altro</option>
+        </select>
+        <select id="filterCondizione" class="input">
+          <option value="tutte">Tutte le condizioni</option>
+          <option value="nuovo">Nuovo</option>
+          <option value="buono">Buono</option>
+          <option value="discreto">Discreto</option>
+          <option value="da restaurare">Da restaurare</option>
+        </select>
+        <input id="searchBar" type="text" class="input flex-1 min-w-[180px]" placeholder="Cerca per titolo, autore, collocazione..." autocomplete="off">
+        <button id="btnSort" class="btn btn-secondary btn-sm"><span class="btn-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5"/><path d="M12 20V4"/></svg></span> Ordina</button>
+        <button id="btnToggleView" class="btn btn-secondary btn-sm"><span class="btn-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg></span> Vista tabella</button>
+      </section>
 
-                <!-- Filters & Sorting -->
-                <div class="flex flex-wrap items-center gap-2.5">
-                    <!-- Category Filter Buttons -->
-                    <select id="category-filter" onchange="renderCollection()" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs sm:text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-sky-500">
-                        <option value="ALL">Tutte le Categorie</option>
-                        <option value="Libro">Libro</option>
-                        <option value="Fumetto">Fumetto</option>
-                        <option value="Vinile">Vinile</option>
-                        <option value="CD">CD Musica</option>
-                        <option value="DVD">DVD / Blu-ray</option>
-                        <option value="Videogioco">Videogioco</option>
-                        <option value="Altro">Altro</option>
-                    </select>
+      <section class="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="stat-card">
+          <span class="stat-label">Totale pezzi</span>
+          <strong id="statTotalItems">0</strong>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Valore stimato</span>
+          <strong id="statTotalSpent">€0,00</strong>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Libri</span>
+          <strong id="statLibri">0</strong>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Musica</span>
+          <strong id="statMusica">0</strong>
+        </div>
+      </section>
 
-                    <!-- Sorting Dropdown -->
-                    <select id="sort-filter" onchange="renderCollection()" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs sm:text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-sky-500">
-                        <option value="date-desc">Data (Più recenti)</option>
-                        <option value="date-asc">Data (Meno recenti)</option>
-                        <option value="title-asc">Titolo (A-Z)</option>
-                        <option value="title-desc">Titolo (Z-A)</option>
-                        <option value="year-desc">Anno (Più recente)</option>
-                        <option value="value-desc">Valore (Maggiore)</option>
-                    </select>
-
-                    <!-- View Switcher -->
-                    <div class="flex bg-slate-900 p-1 border border-slate-700 rounded-xl">
-                        <button id="view-grid-btn" onclick="setViewMode('grid')" class="p-1.5 rounded-lg text-sky-400 bg-slate-800 transition">
-                            <i data-lucide="grid" class="w-4 h-4"></i>
-                        </button>
-                        <button id="view-list-btn" onclick="setViewMode('list')" class="p-1.5 rounded-lg text-slate-400 hover:text-white transition">
-                            <i data-lucide="list" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Collection Output Container -->
-            <div id="collection-container" class="min-h-[300px]">
-                <!-- Dati inseriti dinamicamente via JS -->
-            </div>
-        </section>
-
-        <!-- TAB: GUIDA GITHUB PAGES -->
-        <section id="tab-github-guide" class="hidden space-y-6 max-w-4xl mx-auto">
-            <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 sm:p-8 space-y-6">
-                <div class="flex items-center gap-3 border-b border-slate-700 pb-4">
-                    <div class="p-3 bg-sky-500/10 text-sky-400 rounded-xl">
-                        <i data-lucide="github" class="w-8 h-8"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-2xl font-bold text-white">Guida al caricamento su GitHub Pages</h2>
-                        <p class="text-sm text-slate-400">Pubblica gratis la tua applicazione sul tuo account GitHub in meno di 2 minuti.</p>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-sky-400 flex items-center gap-2">
-                        <span class="w-6 h-6 rounded-full bg-sky-500/20 text-sky-400 text-xs flex items-center justify-center font-bold">1</span>
-                        Crea la repository su GitHub
-                    </h3>
-                    <p class="text-sm text-slate-300 leading-relaxed">
-                        Accedi a <a href="https://github.com" target="_blank" class="text-sky-400 underline">GitHub.com</a> e crea una nuova repository pubblica (es. <code class="bg-slate-900 px-2 py-1 rounded text-amber-300">vaultify-media</code>).
-                    </p>
-
-                    <h3 class="text-lg font-semibold text-sky-400 flex items-center gap-2">
-                        <span class="w-6 h-6 rounded-full bg-sky-500/20 text-sky-400 text-xs flex items-center justify-center font-bold">2</span>
-                        Struttura dei File consigliata
-                    </h3>
-                    <p class="text-sm text-slate-300">Puoi usare un singolo file <code class="bg-slate-900 px-2 py-1 rounded text-amber-300">index.html</code> oppure separare il codice:</p>
-                    
-                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 text-xs font-mono text-slate-300 space-y-2">
-                        <p>📁 vaultify-media/</p>
-                        <p class="pl-4">├── 📄 index.html <span class="text-slate-500">(Codice principale dell'app)</span></p>
-                        <p class="pl-4">├── 📄 styles.css <span class="text-slate-500">(Stili personalizzati o Tailwind)</span></p>
-                        <p class="pl-4">├── 📄 app.js <span class="text-slate-500">(Logica JS, Scanner e chiamate API)</span></p>
-                        <p class="pl-4">└── 📄 README.md <span class="text-slate-500">(Documentazione del tuo progetto)</span></p>
-                    </div>
-
-                    <h3 class="text-lg font-semibold text-sky-400 flex items-center gap-2">
-                        <span class="w-6 h-6 rounded-full bg-sky-500/20 text-sky-400 text-xs flex items-center justify-center font-bold">3</span>
-                        Attiva GitHub Pages
-                    </h3>
-                    <ol class="list-disc list-inside text-sm text-slate-300 space-y-2 pl-2">
-                        <li>Entra nella pagina della tua repository su GitHub.</li>
-                        <li>Vai nella scheda <strong class="text-white">Settings</strong> &rarr; <strong class="text-white">Pages</strong> (nel menu a sinistra).</li>
-                        <li>In <strong>Build and deployment</strong>, imposta il ramo (Branch) su <code class="bg-slate-900 px-2 py-1 rounded text-amber-300">main</code> e seleziona la cartella <code class="bg-slate-900 px-2 py-1 rounded text-amber-300">/(root)</code>.</li>
-                        <li>Fai clic su <strong>Save</strong>. In circa 60 secondi il tuo sito sarà live all'indirizzo: <code class="text-emerald-400">https://tuo-utente.github.io/vaultify-media/</code></li>
-                    </ol>
-                </div>
-            </div>
-        </section>
+      <!-- Collection Grid -->
+      <section id="collectionGrid">
+        <div id="emptyState" class="text-center py-12 text-slate-400 hidden">
+          <p class="text-lg mb-2">La tua collezione è vuota!</p>
+          <p>Aggiungi elementi usando il pulsante "Aggiungi manualmente" o "Scanner codici a barre".</p>
+        </div>
+      </section>
     </main>
 
-    <!-- MODALE SCANNER BARCODE -->
-    <div id="scanner-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative space-y-4">
-            <button onclick="closeScannerModal()" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-lg">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
+    <!-- Import file input (hidden) -->
+    <input type="file" id="importInput" accept=".json" class="hidden">
 
-            <div class="flex items-center gap-3">
-                <div class="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl">
-                    <i data-lucide="scan" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-white">Scannerizazione Codice a Barre</h3>
-                    <p class="text-xs text-slate-400">Inquadra un codice EAN / ISBN per l'autocompilazione</p>
-                </div>
-            </div>
+    <div id="toast" class="toast hidden" aria-live="polite" aria-atomic="true"></div>
 
-            <!-- Video Frame per Scanner -->
-            <div class="relative bg-slate-950 rounded-xl overflow-hidden border border-slate-800 min-h-[260px] flex items-center justify-center">
-                <div id="qr-reader" class="w-full"></div>
-            </div>
-
-            <!-- Manual Input Fallback inside Scanner -->
-            <div class="pt-2 border-t border-slate-800">
-                <label class="block text-xs font-medium text-slate-400 mb-1">Inserimento Manuale Codice (ISBN/EAN)</label>
-                <div class="flex gap-2">
-                    <input type="text" id="manual-barcode-input" placeholder="Es. 9788804668237" class="flex-grow px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500">
-                    <button onclick="handleManualBarcodeSearch()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-lg text-sm flex items-center gap-1">
-                        <i data-lucide="search" class="w-4 h-4"></i> Cerca
-                    </button>
-                </div>
-            </div>
-        </div>
+    <!-- Scanner Modal -->
+    <div id="scannerModal" class="modal-overlay hidden">
+      <div class="modal p-6">
+        <button class="close-btn" aria-label="Chiudi">&times;</button>
+        <h2 class="text-xl font-bold mb-4">Scanner codice a barre / ISBN</h2>
+        <div id="reader" class="w-full max-w-sm mx-auto bg-black rounded"></div>
+        <p id="scannerStatus" class="mt-2 text-sm text-slate-400 text-center">Posiziona il codice a barre davanti alla fotocamera</p>
+      </div>
     </div>
 
-    <!-- MODALE AGGIUNGI / MODIFICA ELEMENTO -->
-    <div id="item-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative my-8">
-            <button onclick="closeItemModal()" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-lg">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
-
-            <h3 id="modal-title" class="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <i data-lucide="plus-circle" class="w-5 h-5 text-sky-400"></i> Aggiungi alla Collezione
-            </h3>
-
-            <form id="item-form" onsubmit="saveItem(event)" class="space-y-4">
-                <input type="hidden" id="item-id">
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Titolo -->
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Titolo *</label>
-                        <input type="text" id="item-title" required class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500">
-                    </div>
-
-                    <!-- Categoria -->
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Categoria *</label>
-                        <select id="item-category" required class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500">
-                            <option value="Libro">Libro</option>
-                            <option value="Fumetto">Fumetto</option>
-                            <option value="Vinile">Vinile</option>
-                            <option value="CD">CD Musica</option>
-                            <option value="DVD">DVD / Blu-ray</option>
-                            <option value="Videogioco">Videogioco</option>
-                            <option value="Altro">Altro</option>
-                        </select>
-                    </div>
-
-                    <!-- Autore / Artista / Regista -->
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Autore / Artista / Regista</label>
-                        <input type="text" id="item-creator" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500">
-                    </div>
-
-                    <!-- Anno -->
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Anno Pubblicazione</label>
-                        <input type="number" id="item-year" placeholder="Es. 1994" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500">
-                    </div>
-
-                    <!-- Condizione -->
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Stato / Condizione</label>
-                        <select id="item-condition" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500">
-                            <option value="Nuovo">Nuovo</option>
-                            <option value="Ottimo">Ottimo</option>
-                            <option value="Buono">Buono</option>
-                            <option value="Usato">Usato</option>
-                            <option value="Raro">Raro / Collector</option>
-                        </select>
-                    </div>
-
-                    <!-- Prezzo / Valore -->
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Valore Stimato (€)</label>
-                        <input type="number" step="0.01" id="item-price" placeholder="0.00" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500">
-                    </div>
-
-                    <!-- Codice a Barre EAN/ISBN -->
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Codice EAN / ISBN</label>
-                        <input type="text" id="item-barcode" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500">
-                    </div>
-
-                    <!-- Image URL & Preview -->
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-medium text-slate-400 mb-1">URL Immagine Copertina</label>
-                        <div class="flex gap-2">
-                            <input type="url" id="item-cover" placeholder="https://..." class="flex-grow px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500">
-                            <button type="button" onclick="previewCover()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">Anteprima</button>
-                        </div>
-                    </div>
-
-                    <!-- Description / Notes -->
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Note / Descrizione / Trama</label>
-                        <textarea id="item-notes" rows="3" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"></textarea>
-                    </div>
-                </div>
-
-                <!-- Submit Buttons -->
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" onclick="closeItemModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium">Annulla</button>
-                    <button type="submit" class="px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-sky-900/20">Salva Elemento</button>
-                </div>
-            </form>
-        </div>
+    <!-- Manual Entry Modal -->
+    <div id="manualModal" class="modal-overlay hidden">
+      <div class="modal p-6 w-full max-w-lg">
+        <button class="close-btn" aria-label="Chiudi">&times;</button>
+        <h2 class="text-xl font-bold mb-4">Aggiungi elemento</h2>
+        <form id="manualForm" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><input id="fTitolo" type="text" class="input" placeholder="Titolo *" required></div>
+            <div><select id="fCat" class="input">
+              <option value="libri">Libro</option>
+              <option value="fumetti">Fumetto</option>
+              <option value="musica">Musica</option>
+              <option value="video">Film/DVD</option>
+              <option value="altro">Altro</option>
+            </select></div>
+          </div>
+          <input id="fAutore" type="text" class="input" placeholder="Autore / Artista">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <input id="fAnno" type="number" class="input" placeholder="Anno Pubblicazione">
+            <input id="fImmagine" type="url" class="input" placeholder="URL Copertina (opzionale)">
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <select id="fCondizione" class="input">
+              <option value="">Condizione</option>
+              <option value="nuovo">Nuovo</option>
+              <option value="buono">Buono</option>
+              <option value="discreto">Discreto</option>
+              <option value="da restaurare">Da restaurare</option>
+            </select>
+            <input id="fQuantita" type="number" min="1" value="1" class="input" placeholder="Quantità">
+            <input id="fPrezzo" type="number" min="0" step="0.01" class="input" placeholder="Prezzo (€)">
+          </div>
+          <input id="fCollocazione" type="text" class="input" placeholder="Collocazione / Scaffale">
+          <textarea id="fNote" class="input" rows="3" placeholder="Note / Dettagli / Condizioni"></textarea>
+          <button type="submit" class="btn btn-primary w-full">Salva elemento</button>
+        </form>
+      </div>
     </div>
 
-    <!-- MODALE DETTAGLI ELEMENTO -->
-    <div id="detail-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative my-8">
-            <button onclick="closeDetailModal()" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-lg">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
-            <div id="detail-modal-content">
-                <!-- Inserito dinamicamente -->
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Stato Applicazione e Storage Key
-        const STORAGE_KEY = 'vaultify_media_collection';
-        let collection = [];
-        let html5QrCode = null;
-        let currentViewMode = 'grid'; // 'grid' | 'list'
-
-        // Caricamento Dati Demo Predefiniti se Vuoto
-        const DEMO_DATA = [
-            {
-                id: 'demo-1',
-                title: 'The Dark Side of the Moon',
-                category: 'Vinile',
-                creator: 'Pink Floyd',
-                year: '1973',
-                condition: 'Raro',
-                price: 45.00,
-                barcode: '5099902987613',
-                cover: 'https://images.unsplash.com/photo-1619983081563-430f63602796?auto=format&fit=crop&w=600&q=80',
-                notes: 'Edizione vinile 180g rimasterizzata. Iconico album rock progressivo.',
-                createdAt: new Date().toISOString()
-            },
-            {
-                id: 'demo-2',
-                title: '1984',
-                category: 'Libro',
-                creator: 'George Orwell',
-                year: '1949',
-                condition: 'Ottimo',
-                price: 12.50,
-                barcode: '9780451524935',
-                cover: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
-                notes: 'Capolavoro della letteratura distopica moderna.',
-                createdAt: new Date(Date.now() - 86400000).toISOString()
-            },
-            {
-                id: 'demo-3',
-                title: 'The Legend of Zelda: Breath of the Wild',
-                category: 'Videogioco',
-                creator: 'Nintendo',
-                year: '2017',
-                condition: 'Nuovo',
-                price: 59.90,
-                barcode: '0045496590420',
-                cover: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=600&q=80',
-                notes: 'Versione Nintendo Switch, condizioni immacolate.',
-                createdAt: new Date(Date.now() - 172800000).toISOString()
-            }
-        ];
-
-        // Init dell'App al caricamento
-        window.addEventListener('DOMContentLoaded', () => {
-            loadCollection();
-            lucide.createIcons();
-        });
-
-        // Salvataggio e Lettura LocalStorage
-        function loadCollection() {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                try {
-                    collection = JSON.parse(stored);
-                } catch (e) {
-                    collection = [];
-                }
-            } else {
-                collection = [...DEMO_DATA];
-                saveCollection();
-            }
-            renderCollection();
-            updateStats();
-        }
-
-        function saveCollection() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(collection));
-            updateStats();
-        }
-
-        // Autocompilazione dati da API basati su Barcode / ISBN / EAN
-        async function fetchMediaDataByBarcode(barcode) {
-            // Pulisci il codice
-            const cleanCode = barcode.trim().replace(/[^0-9X]/gi, '');
-            if (!cleanCode) return null;
-
-            // 1. Tenta con Google Books API (Ideale per libri / fumetti con ISBN)
-            try {
-                const gbRes = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanCode}`);
-                const gbData = await gbRes.json();
-                if (gbData.items && gbData.items.length > 0) {
-                    const book = gbData.items[0].volumeInfo;
-                    return {
-                        title: book.title || '',
-                        category: 'Libro',
-                        creator: book.authors ? book.authors.join(', ') : '',
-                        year: book.publishedDate ? book.publishedDate.substring(0, 4) : '',
-                        cover: book.imageLinks?.thumbnail ? book.imageLinks.thumbnail.replace('http:', 'https:') : '',
-                        notes: book.description || '',
-                        barcode: cleanCode
-                    };
-                }
-            } catch (err) {
-                console.warn('Google Books API Error:', err);
-            }
-
-            // 2. Tenta con iTunes Search API (Ottimo per Musica, CD, Album)
-            try {
-                const itunesRes = await fetch(`https://itunes.apple.com/lookup?upc=${cleanCode}`);
-                const itunesData = await itunesRes.json();
-                if (itunesData.results && itunesData.results.length > 0) {
-                    const item = itunesData.results[0];
-                    return {
-                        title: item.collectionName || item.trackName || '',
-                        category: item.wrapperType === 'collection' ? 'CD' : 'Musica',
-                        creator: item.artistName || '',
-                        year: item.releaseDate ? item.releaseDate.substring(0, 4) : '',
-                        cover: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '600x600bb') : '',
-                        notes: `Genere: ${item.primaryGenreName || 'Vari'}`,
-                        barcode: cleanCode
-                    };
-                }
-            } catch (err) {
-                console.warn('iTunes API Error:', err);
-            }
-
-            // 3. Fallback Generico MusicBrainz per EAN Musica
-            try {
-                const mbRes = await fetch(`https://musicbrainz.org/ws/2/release/?query=barcode:${cleanCode}&fmt=json`);
-                const mbData = await mbRes.json();
-                if (mbData.releases && mbData.releases.length > 0) {
-                    const rel = mbData.releases[0];
-                    return {
-                        title: rel.title || '',
-                        category: 'CD',
-                        creator: rel['artist-credit'] ? rel['artist-credit'][0].name : '',
-                        year: rel.date ? rel.date.substring(0, 4) : '',
-                        cover: '',
-                        notes: `Etichetta: ${rel['label-info']?.[0]?.label?.name || 'N/A'}`,
-                        barcode: cleanCode
-                    };
-                }
-            } catch (err) {
-                console.warn('MusicBrainz API Error:', err);
-            }
-
-            return null;
-        }
-
-        function openScannerModal() {
-            document.getElementById('scanner-modal').classList.remove('hidden');
-            
-            // Inizializza Scanner
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("qr-reader");
-            }
-            
-            const config = { fps: 10, qrbox: { width: 250, height: 150 } };
-            
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                config, 
-                onScanSuccess
-            ).catch(err => {
-                console.error("Camera access error:", err);
-            });
-        }
-
-        function closeScannerModal() {
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => {
-                    document.getElementById('scanner-modal').classList.add('hidden');
-                }).catch(() => {
-                    document.getElementById('scanner-modal').classList.add('hidden');
-                });
-            } else {
-                document.getElementById('scanner-modal').classList.add('hidden');
-            }
-        }
-
-        async function onScanSuccess(decodedText) {
-            closeScannerModal();
-            // Notifica
-            showNotification(`Codice rilevato: ${decodedText}. Ricerca dati in corso...`);
-            
-            const autoData = await fetchMediaDataByBarcode(decodedText);
-            if (autoData) {
-                openItemModal(autoData);
-                showNotification('Dati trovati ed autocompilati con successo!');
-            } else {
-                openItemModal({ barcode: decodedText });
-                showNotification('Nessuna info automatica trovata. Inserisci i dettagli manualmente.');
-            }
-        }
-
-        async function handleManualBarcodeSearch() {
-            const val = document.getElementById('manual-barcode-input').value;
-            if (!val) return;
-            closeScannerModal();
-            showNotification(`Ricerca codice: ${val}...`);
-            const autoData = await fetchMediaDataByBarcode(val);
-            if (autoData) {
-                openItemModal(autoData);
-                showNotification('Dati trovati con successo!');
-            } else {
-                openItemModal({ barcode: val });
-                showNotification('Codice non presente negli archivi API. Compila i campi.');
-            }
-        }
-
-        function openItemModal(data = null) {
-            const modal = document.getElementById('item-modal');
-            const form = document.getElementById('item-form');
-            form.reset();
-
-            if (data && data.id) {
-                // Modalità Modifica
-                document.getElementById('modal-title').innerHTML = '<i data-lucide="edit" class="w-5 h-5 text-sky-400"></i> Modifica Elemento';
-                document.getElementById('item-id').value = data.id;
-                document.getElementById('item-title').value = data.title || '';
-                document.getElementById('item-category').value = data.category || 'Libro';
-                document.getElementById('item-creator').value = data.creator || '';
-                document.getElementById('item-year').value = data.year || '';
-                document.getElementById('item-condition').value = data.condition || 'Ottimo';
-                document.getElementById('item-price').value = data.price || '';
-                document.getElementById('item-barcode').value = data.barcode || '';
-                document.getElementById('item-cover').value = data.cover || '';
-                document.getElementById('item-notes').value = data.notes || '';
-            } else {
-                // Modalità Nuovo o Autocompilato
-                document.getElementById('modal-title').innerHTML = '<i data-lucide="plus-circle" class="w-5 h-5 text-sky-400"></i> Aggiungi alla Collezione';
-                document.getElementById('item-id').value = '';
-                if (data) {
-                    document.getElementById('item-title').value = data.title || '';
-                    document.getElementById('item-category').value = data.category || 'Libro';
-                    document.getElementById('item-creator').value = data.creator || '';
-                    document.getElementById('item-year').value = data.year || '';
-                    document.getElementById('item-barcode').value = data.barcode || '';
-                    document.getElementById('item-cover').value = data.cover || '';
-                    document.getElementById('item-notes').value = data.notes || '';
-                }
-            }
-
-            modal.classList.remove('hidden');
-            lucide.createIcons();
-        }
-
-        function closeItemModal() {
-            document.getElementById('item-modal').classList.add('hidden');
-        }
-
-        function saveItem(e) {
-            e.preventDefault();
-            const id = document.getElementById('item-id').value;
-            
-            const itemObj = {
-                id: id || 'item-' + Date.now(),
-                title: document.getElementById('item-title').value.trim(),
-                category: document.getElementById('item-category').value,
-                creator: document.getElementById('item-creator').value.trim(),
-                year: document.getElementById('item-year').value,
-                condition: document.getElementById('item-condition').value,
-                price: parseFloat(document.getElementById('item-price').value) || 0,
-                barcode: document.getElementById('item-barcode').value.trim(),
-                cover: document.getElementById('item-cover').value.trim() || 'https://placehold.co/400x600/1e293b/94a3b8?text=Nessuna+Copertina',
-                notes: document.getElementById('item-notes').value.trim(),
-                createdAt: id ? (collection.find(x => x.id === id)?.createdAt || new Date().toISOString()) : new Date().toISOString()
-            };
-
-            if (id) {
-                const index = collection.findIndex(x => x.id === id);
-                if (index !== -1) collection[index] = itemObj;
-            } else {
-                collection.unshift(itemObj);
-            }
-
-            saveCollection();
-            renderCollection();
-            closeItemModal();
-            showNotification('Elemento salvato con successo!');
-        }
-
-        function deleteItem(id) {
-            if (confirm('Sei sicuro di voler eliminare questo oggetto dalla tua collezione?')) {
-                collection = collection.filter(x => x.id !== id);
-                saveCollection();
-                renderCollection();
-                closeDetailModal();
-                showNotification('Elemento rimosso.');
-            }
-        }
-
-        function setViewMode(mode) {
-            currentViewMode = mode;
-            const gridBtn = document.getElementById('view-grid-btn');
-            const listBtn = document.getElementById('view-list-btn');
-
-            if (mode === 'grid') {
-                gridBtn.className = 'p-1.5 rounded-lg text-sky-400 bg-slate-800 transition';
-                listBtn.className = 'p-1.5 rounded-lg text-slate-400 hover:text-white transition';
-            } else {
-                listBtn.className = 'p-1.5 rounded-lg text-sky-400 bg-slate-800 transition';
-                gridBtn.className = 'p-1.5 rounded-lg text-slate-400 hover:text-white transition';
-            }
-            renderCollection();
-        }
-
-        function renderCollection() {
-            const container = document.getElementById('collection-container');
-            const searchVal = document.getElementById('search-input').value.toLowerCase();
-            const catVal = document.getElementById('category-filter').value;
-            const sortVal = document.getElementById('sort-filter').value;
-
-            // Filtro
-            let filtered = collection.filter(item => {
-                const matchSearch = (item.title || '').toLowerCase().includes(searchVal) ||
-                                    (item.creator || '').toLowerCase().includes(searchVal) ||
-                                    (item.notes || '').toLowerCase().includes(searchVal) ||
-                                    (item.barcode || '').includes(searchVal);
-                
-                const matchCat = catVal === 'ALL' || item.category === catVal;
-                return matchSearch && matchCat;
-            });
-
-            // Ordinamento
-            filtered.sort((a, b) => {
-                if (sortVal === 'date-desc') return new Date(b.createdAt) - new Date(a.createdAt);
-                if (sortVal === 'date-asc') return new Date(a.createdAt) - new Date(b.createdAt);
-                if (sortVal === 'title-asc') return a.title.localeCompare(b.title);
-                if (sortVal === 'title-desc') return b.title.localeCompare(a.title);
-                if (sortVal === 'year-desc') return (b.year || 0) - (a.year || 0);
-                if (sortVal === 'value-desc') return (b.price || 0) - (a.price || 0);
-                return 0;
-            });
-
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-16 bg-slate-800/30 rounded-2xl border border-slate-800">
-                        <i data-lucide="package-open" class="w-12 h-12 text-slate-600 mx-auto mb-3"></i>
-                        <p class="text-slate-400 font-medium">Nessun elemento trovato nella tua collezione</p>
-                        <p class="text-xs text-slate-500 mt-1">Prova a cambiare i filtri o premi "Aggiungi" / "Scansiona"</p>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            if (currentViewMode === 'grid') {
-                container.innerHTML = `
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                        ${filtered.map(item => renderGridCard(item)).join('')}
-                    </div>
-                `;
-            } else {
-                container.innerHTML = `
-                    <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm text-slate-300">
-                                <thead class="bg-slate-900/80 text-xs text-slate-400 uppercase border-b border-slate-700">
-                                    <tr>
-                                        <th class="px-4 py-3">Copertina</th>
-                                        <th class="px-4 py-3">Titolo</th>
-                                        <th class="px-4 py-3">Categoria</th>
-                                        <th class="px-4 py-3">Autore / Artista</th>
-                                        <th class="px-4 py-3">Anno</th>
-                                        <th class="px-4 py-3">Valore</th>
-                                        <th class="px-4 py-3 text-right">Azioli</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-800">
-                                    ${filtered.map(item => renderListRow(item)).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            }
-
-            lucide.createIcons();
-        }
-
-        // Helper Rendering Scheda Grid
-        function renderGridCard(item) {
-            const badgeColor = getCategoryBadgeColor(item.category);
-            return `
-                <div onclick="openDetailModal('${item.id}')" class="group bg-slate-800/80 hover:bg-slate-800 border border-slate-700/70 rounded-xl overflow-hidden transition duration-200 cursor-pointer flex flex-col hover:border-sky-500/50 hover:shadow-xl hover:shadow-sky-950/30">
-                    <div class="relative aspect-[2/3] bg-slate-900 overflow-hidden">
-                        <img src="${item.cover}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.src='https://placehold.co/400x600/1e293b/94a3b8?text=Nessuna+Copertina'">
-                        <span class="absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeColor} backdrop-blur-md">
-                            ${item.category}
-                        </span>
-                        ${item.price ? `<span class="absolute bottom-2 right-2 text-xs font-bold px-2 py-0.5 rounded-md bg-slate-950/80 text-teal-400 backdrop-blur">€${item.price.toFixed(2)}</span>` : ''}
-                    </div>
-                    <div class="p-3 flex flex-col flex-grow justify-between">
-                        <div>
-                            <h4 class="font-semibold text-sm text-white line-clamp-1 group-hover:text-sky-400 transition">${item.title}</h4>
-                            <p class="text-xs text-slate-400 line-clamp-1 mt-0.5">${item.creator || 'Autore sconosciuto'}</p>
-                        </div>
-                        <div class="flex items-center justify-between text-[11px] text-slate-500 mt-3 pt-2 border-t border-slate-700/50">
-                            <span>${item.year || 'N/D'}</span>
-                            <span class="text-slate-400">${item.condition || ''}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Helper Rendering Riga Lista
-        function renderListRow(item) {
-            const badgeColor = getCategoryBadgeColor(item.category);
-            return `
-                <tr onclick="openDetailModal('${item.id}')" class="hover:bg-slate-800/50 cursor-pointer transition">
-                    <td class="px-4 py-2">
-                        <img src="${item.cover}" alt="${item.title}" class="w-10 h-14 object-cover rounded-md bg-slate-900" onerror="this.src='https://placehold.co/400x600/1e293b/94a3b8?text=N/D'">
-                    </td>
-                    <td class="px-4 py-3 font-medium text-white">${item.title}</td>
-                    <td class="px-4 py-3">
-                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeColor}">${item.category}</span>
-                    </td>
-                    <td class="px-4 py-3 text-slate-400">${item.creator || '-'}</td>
-                    <td class="px-4 py-3 text-slate-400">${item.year || '-'}</td>
-                    <td class="px-4 py-3 text-teal-400 font-medium">${item.price ? '€' + item.price.toFixed(2) : '-'}</td>
-                    <td class="px-4 py-3 text-right">
-                        <button onclick="event.stopPropagation(); openItemModal(collection.find(x=>x.id==='${item.id}'))" class="p-1.5 text-slate-400 hover:text-sky-400 rounded-lg">
-                            <i data-lucide="edit" class="w-4 h-4"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }
-
-        function openDetailModal(id) {
-            const item = collection.find(x => x.id === id);
-            if (!item) return;
-
-            const badgeColor = getCategoryBadgeColor(item.category);
-            const content = document.getElementById('detail-modal-content');
-
-            content.innerHTML = `
-                <div class="flex flex-col md:flex-row gap-6">
-                    <div class="w-full md:w-1/3 flex-shrink-0">
-                        <img src="${item.cover}" alt="${item.title}" class="w-full rounded-xl shadow-lg object-cover aspect-[2/3] bg-slate-950" onerror="this.src='https://placehold.co/400x600/1e293b/94a3b8?text=Nessuna+Copertina'">
-                    </div>
-                    <div class="flex-grow space-y-4">
-                        <div>
-                            <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${badgeColor}">
-                                ${item.category}
-                            </span>
-                            <h2 class="text-2xl font-bold text-white mt-2">${item.title}</h2>
-                            <p class="text-base text-slate-300">${item.creator || 'Autore sconosciuto'}</p>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3 text-xs bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-                            <div>
-                                <span class="text-slate-500 block">Anno</span>
-                                <span class="text-slate-200 font-medium">${item.year || 'Non specificato'}</span>
-                            </div>
-                            <div>
-                                <span class="text-slate-500 block">Condizione</span>
-                                <span class="text-slate-200 font-medium">${item.condition || 'N/D'}</span>
-                            </div>
-                            <div>
-                                <span class="text-slate-500 block">Valore Stimato</span>
-                                <span class="text-teal-400 font-semibold">${item.price ? '€' + item.price.toFixed(2) : 'N/D'}</span>
-                            </div>
-                            <div>
-                                <span class="text-slate-500 block">Codice EAN / ISBN</span>
-                                <span class="text-slate-200 font-mono">${item.barcode || 'N/D'}</span>
-                            </div>
-                        </div>
-
-                        ${item.notes ? `
-                            <div>
-                                <h4 class="text-xs font-medium text-slate-400 mb-1">Note & Trama</h4>
-                                <p class="text-sm text-slate-300 leading-relaxed bg-slate-950/30 p-3 rounded-xl border border-slate-800/80">${item.notes}</p>
-                            </div>
-                        ` : ''}
-
-                        <div class="pt-4 flex justify-between items-center border-t border-slate-800">
-                            <button onclick="deleteItem('${item.id}')" class="px-3.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg text-xs font-medium flex items-center gap-1.5 transition">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i> Elimina
-                            </button>
-                            <button onclick="closeDetailModal(); openItemModal(collection.find(x=>x.id==='${item.id}'))" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition">
-                                <i data-lucide="edit" class="w-4 h-4"></i> Modifica
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            document.getElementById('detail-modal').classList.remove('hidden');
-            lucide.createIcons();
-        }
-
-        function closeDetailModal() {
-            document.getElementById('detail-modal').classList.add('hidden');
-        }
-
-        function updateStats() {
-            document.getElementById('stat-total').innerText = collection.length;
-            document.getElementById('stat-books').innerText = collection.filter(x => x.category === 'Libro' || x.category === 'Fumetto').length;
-            document.getElementById('stat-music').innerText = collection.filter(x => x.category === 'Vinile' || x.category === 'CD').length;
-            document.getElementById('stat-movies').innerText = collection.filter(x => x.category === 'DVD').length;
-            document.getElementById('stat-games').innerText = collection.filter(x => x.category === 'Videogioco').length;
-            
-            const totalVal = collection.reduce((acc, curr) => acc + (curr.price || 0), 0);
-            document.getElementById('stat-value').innerText = `€ ${totalVal.toFixed(2)}`;
-        }
-
-        function exportData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(collection, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `vaultify_backup_${new Date().toISOString().slice(0,10)}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-            showNotification('Backup scaricato correttamente!');
-        }
-
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    if (Array.isArray(imported)) {
-                        collection = imported;
-                        saveCollection();
-                        renderCollection();
-                        showNotification('Collezione importata con successo!');
-                    } else {
-                        alert('Il file JSON non ha una struttura valida.');
-                    }
-                } catch (err) {
-                    alert('Errore nel caricamento del file JSON.');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function loadDemoData() {
-            if (confirm('Vuoi caricare i dati di esempio nella tua collezione?')) {
-                collection = [...DEMO_DATA];
-                saveCollection();
-                renderCollection();
-                showNotification('Dati demo caricati!');
-            }
-        }
-
-        function clearCollection() {
-            if (confirm('Sei sicuro di voler svuotare interamente la collezione? Operazione irreversibile.')) {
-                collection = [];
-                saveCollection();
-                renderCollection();
-                showNotification('Collezione svuotata.');
-            }
-        }
-
-        function switchTab(tabId) {
-            document.getElementById('tab-dashboard').classList.add('hidden');
-            document.getElementById('tab-github-guide').classList.add('hidden');
-            
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-
-            document.getElementById('nav-dashboard').className = 'nav-btn px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 flex items-center gap-2';
-            document.getElementById('nav-github-guide').className = 'nav-btn px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 flex items-center gap-2';
-
-            document.getElementById(`nav-${tabId}`).className = 'nav-btn px-4 py-2 text-sm font-medium rounded-lg text-sky-400 bg-sky-950/40 border border-sky-800/50 flex items-center gap-2';
-        }
-
-        function toggleDarkMode() {
-            document.documentElement.classList.toggle('dark');
-        }
-
-        function previewCover() {
-            const url = document.getElementById('item-cover').value;
-            if (url) {
-                window.open(url, '_blank');
-            }
-        }
-
-        function getCategoryBadgeColor(cat) {
-            switch(cat) {
-                case 'Libro': return 'bg-amber-500/20 text-amber-300 border border-amber-500/30';
-                case 'Fumetto': return 'bg-orange-500/20 text-orange-300 border border-orange-500/30';
-                case 'Vinile': return 'bg-purple-500/20 text-purple-300 border border-purple-500/30';
-                case 'CD': return 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30';
-                case 'DVD': return 'bg-rose-500/20 text-rose-300 border border-rose-500/30';
-                case 'Videogioco': return 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
-                default: return 'bg-slate-500/20 text-slate-300 border border-slate-500/30';
-            }
-        }
-
-        function showNotification(msg) {
-            const notif = document.createElement('div');
-            notif.className = 'fixed bottom-4 right-4 bg-sky-600 text-white px-4 py-2.5 rounded-xl shadow-2xl z-50 text-sm font-medium flex items-center gap-2 transition-all duration-300 transform translate-y-2 opacity-0';
-            notif.innerHTML = `<i data-lucide="info" class="w-4 h-4"></i> ${msg}`;
-            document.body.appendChild(notif);
-            lucide.createIcons();
-
-            setTimeout(() => {
-                notif.classList.remove('translate-y-2', 'opacity-0');
-            }, 10);
-
-            setTimeout(() => {
-                notif.classList.add('opacity-0', 'translate-y-2');
-                setTimeout(() => notif.remove(), 300);
-            }, 3000);
-        }
-    </script>
-</body>
+    <!-- Custom JS -->
+    <script src="app.js"></script>
+  </body>
 </html>

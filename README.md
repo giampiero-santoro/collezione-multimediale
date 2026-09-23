@@ -1,16 +1,58 @@
-# MultiMedia Collector 📚🎵🎮
+# Collezione Multimediale
 
-Un'applicazione web client-side (senza backend) per catalogare e gestire collezioni di Libri, Fumetti, Vinili, CD, DVD e Videogiochi.
+Archivio digitale locale per gestire la tua collezione multimediale: libri, fumetti, musica, film/DVD, giochi e altri pezzi.
 
-## 🚀 Caratteristiche
-- **Scanner Barcode (EAN / ISBN):** Lettura tramite fotocamera smartphone o webcam desktop via `html5-qrcode`.
-- **Autocompilazione API:** Recupero automatico di dati e copertine via Google Books API e iTunes Search API.
-- **Persistenza e Backup:** Salvataggio in `localStorage` ed esportazione/importazione JSON.
-- **Filtri e Ricerca:** Ordinamento, filtri per categoria e ricerca testuale istantanea.
-- **Tema Scuro:** Interfaccia responsive predisposta per Dark Mode.
+## Descrizione
 
-## 📦 Installazione e Hosting su GitHub Pages
-1. Fai il push dei file (`index.html`, `styles.css`, `app.js`) nella repository GitHub.
-2. Vai su **Settings** > **Pages** della repository.
-3. Seleziona il branch `main` (o `master`) e la cartella `/ (root)`.
-4. Clicca su **Save**. Il tuo sito sarà visibile su `https://<tuo-utente>.github.io/<nome-repo>/`.
+L'applicazione permette di:
+
+- aggiungere elementi manualmente con titolo, autore, categoria, anno, collocazione, condizione, prezzo e note
+- eseguire scansioni ISBN/codici a barre con fotocamera
+- completare automaticamente i dati tramite Google Books API per i libri
+- cercare e filtrare per categoria e condizione
+- ordinare la collezione per titolo o anno
+- alternare il tema chiaro/scuro
+- esportare e importare backup in JSON e CSV
+- salvare tutto in `localStorage` nel browser
+
+## Tecnologie
+
+- HTML5
+- JavaScript moderno (ES6+)
+- Tailwind CSS via CDN
+- html5-qrcode per lo scanner
+- Google Books API per ISBN
+- localStorage per persistenza locale
+
+## Come avviare
+
+1. Apri `index.html` nel browser, oppure trascina la pagina nella scheda del browser
+2. In alternativa, puoi servirlo localmente con un semplice server statico:
+
+```bash
+python3 -m http.server 8000
+```
+
+Poi apri `http://localhost:8000`.
+
+Per GitHub Pages:
+- crea un repository
+- carica `index.html`, `styles.css`, `app.js` e `README.md`
+- vai su Settings → Pages e seleziona il branch corretto
+
+## Struttura dei file
+
+```text
+collezione-multimediale/
+├── index.html    # struttura della pagina e modali
+├── styles.css    # stili e tema
+├── app.js        # logica applicativa e storage
+├── README.md     # documentazione
+└── .gitignore    # file ignorati da Git
+```
+
+## Note utili
+
+- I dati sono salvati localmente nel browser e non richiedono backend
+- La Google Books API può essere soggetta a limitazioni e restrizioni in ambiente commerciale
+- Sono disponibili backup JSON e CSV per esportare la collezione e trasferirla tra dispositivi
