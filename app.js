@@ -116,9 +116,58 @@
     });
   });
 
-  function openManualForm() {
+  function syncQuickCategoryButtons(selectedCategory = document.getElementById('fCat').value) {
+    document.querySelectorAll('.scan-category-btn').forEach(btn => {
+      const isActive = btn.dataset.category === selectedCategory;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+  }
+
+  function setManualCategory(category) {
+    const select = document.getElementById('fCat');
+    if (!select) return;
+    if (category && Array.from(select.options).some(option => option.value === category)) {
+      select.value = category;
+    }
+    syncQuickCategoryButtons(select.value);
+  }
+
+  function buildItemFromForm() {
+    return {
+      titolo: document.getElementById('fTitolo').value.trim(),
+      categoria: document.getElementById('fCat').value,
+      autore: document.getElementById('fAutore').value.trim(),
+      anno: document.getElementById('fAnno').value.trim(),
+      copertina: document.getElementById('fImmagine').value.trim(),
+      condizione: document.getElementById('fCondizione').value,
+      quantita: Number(document.getElementById('fQuantita').value) || 1,
+      collocazione: document.getElementById('fCollocazione').value.trim(),
+      prezzo: document.getElementById('fPrezzo').value.trim(),
+      note: document.getElementById('fNote').value.trim()
+    };
+  }
+
+  function openManualForm(prefill = {}) {
     manualForm.reset();
     delete manualForm.dataset.editId;
+    delete manualForm.dataset.scannedCode;
+
+    if (prefill.titolo) {
+      document.getElementById('fTitolo').value = prefill.titolo;
+    }
+    if (prefill.categoria) {
+      setManualCategory(prefill.categoria);
+    } else {
+      syncQuickCategoryButtons(document.getElementById('fCat').value);
+    }
+    if (prefill.note) {
+      document.getElementById('fNote').value = prefill.note;
+    }
+    if (prefill.code) {
+      manualForm.dataset.scannedCode = String(prefill.code);
+    }
+
     document.getElementById('manualModal').querySelector('h2').textContent = 'Aggiungi elemento';
     openModal('manualModal');
     document.getElementById('fTitolo').focus();
@@ -128,6 +177,8 @@
     closeModal('manualModal');
     manualForm.reset();
     delete manualForm.dataset.editId;
+    delete manualForm.dataset.scannedCode;
+    syncQuickCategoryButtons('libri');
     document.getElementById('manualModal').querySelector('h2').textContent = 'Aggiungi elemento';
   }
 
@@ -452,39 +503,73 @@
     });
   }
 
+  function normalizeBarcode(code) {
+    return String(code || '').trim().replace(/\s+/g, '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  }
+
+  function looksLikeIsbn(code) {
+    const cleaned = normalizeBarcode(code);
+    return /^[0-9]{10}([0-9X])?$|^[0-9]{13}$/.test(cleaned);
+  }
+
+  function inferBarcodeCategory(code) {
+    const cleaned = normalizeBarcode(code);
+    if (!cleaned) return 'altro';
+
+    if (/^(978|979)/.test(cleaned) || /^[0-9]{10}([0-9X])?$|^[0-9]{13}$/.test(cleaned)) {
+      return 'libri';
+    }
+
+    if (/^[0-9]{12,13}$/.test(cleaned) && cleaned.startsWith('7') || /^[0-9]{12,13}$/.test(cleaned) && cleaned.startsWith('8') || /^[0-9]{12,13}$/.test(cleaned) && cleaned.startsWith('9')) {
+      return 'musica';
+    }
+
+    if (/^[0-9]{12,13}$/.test(cleaned) && cleaned.startsWith('0')) {
+      return 'video';
+    }
+
+    return 'altro';
+  }
+
   async function enrichFromBarcode(code) {
     closeScanner();
-    const cleanedCode = (code || '').replace(/[^0-9X]/gi, '').toUpperCase();
+    const cleanedCode = normalizeBarcode(code);
 
     if (!cleanedCode) {
-      openManualForm();
-      document.getElementById('fTitolo').value = code || '';
+      openManualForm({ titolo: String(code || '').trim() || 'Codice scansionato' });
       return;
     }
 
-    try {
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanedCode}`);
-      const data = await response.json();
+    const detectedCategory = inferBarcodeCategory(cleanedCode);
 
-      if (data.items && data.items.length) {
-        const volume = data.items[0].volumeInfo;
-        addItem({
-          titolo: volume.title || cleanedCode,
-          categoria: 'libri',
-          autore: volume.authors ? volume.authors.join(', ') : '',
-          anno: volume.publishedDate ? volume.publishedDate.split('-')[0] : '',
-          copertina: volume.imageLinks?.thumbnail || '',
-          note: volume.description ? volume.description.slice(0, 200) : ''
-        });
-        return;
+    if (detectedCategory === 'libri' && looksLikeIsbn(cleanedCode)) {
+      try {
+        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanedCode}`);
+        const data = await response.json();
+
+        if (data.items && data.items.length) {
+          const volume = data.items[0].volumeInfo;
+          addItem({
+            titolo: volume.title || cleanedCode,
+            categoria: 'libri',
+            autore: volume.authors ? volume.authors.join(', ') : '',
+            anno: volume.publishedDate ? volume.publishedDate.split('-')[0] : '',
+            copertina: volume.imageLinks?.thumbnail || '',
+            note: volume.description ? volume.description.slice(0, 200) : `ISBN: ${cleanedCode}`
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Errore Google Books:', error);
       }
-    } catch (error) {
-      console.error('Errore Google Books:', error);
     }
 
-    openManualForm();
-    document.getElementById('fTitolo').value = cleanedCode;
-    document.getElementById('fCat').value = 'libri';
+    openManualForm({
+      titolo: cleanedCode,
+      categoria: detectedCategory,
+      code: cleanedCode,
+      note: `Codice scansionato: ${cleanedCode}`
+    });
   }
 
   function exportCollection() {
@@ -610,7 +695,26 @@
     event.target.value = '';
   });
 
-  document.getElementById('btnManual').addEventListener('click', openManualForm);
+  document.querySelectorAll('.scan-category-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const category = button.dataset.category;
+      setManualCategory(category);
+
+      if (manualForm.dataset.scannedCode && !manualForm.dataset.editId) {
+        const item = buildItemFromForm();
+        if (!item.titolo) return;
+        addItem({ ...item, categoria: category, note: item.note || `Codice scansionato: ${manualForm.dataset.scannedCode}` });
+        showToast(`Elemento salvato come ${getCategoryLabel(category)}`);
+        closeManualForm();
+      }
+    });
+  });
+
+  document.getElementById('fCat').addEventListener('change', () => {
+    syncQuickCategoryButtons(document.getElementById('fCat').value);
+  });
+
+  document.getElementById('btnManual').addEventListener('click', () => openManualForm());
   document.getElementById('btnScan').addEventListener('click', openScanner);
   document.getElementById('btnExport').addEventListener('click', exportCollection);
   csvBtn.addEventListener('click', exportCsv);
@@ -623,18 +727,7 @@
   manualForm.addEventListener('submit', (event) => {
     event.preventDefault();
     const form = event.currentTarget;
-    const item = {
-      titolo: document.getElementById('fTitolo').value.trim(),
-      categoria: document.getElementById('fCat').value,
-      autore: document.getElementById('fAutore').value.trim(),
-      anno: document.getElementById('fAnno').value.trim(),
-      copertina: document.getElementById('fImmagine').value.trim(),
-      condizione: document.getElementById('fCondizione').value,
-      quantita: Number(document.getElementById('fQuantita').value) || 1,
-      collocazione: document.getElementById('fCollocazione').value.trim(),
-      prezzo: document.getElementById('fPrezzo').value.trim(),
-      note: document.getElementById('fNote').value.trim()
-    };
+    const item = buildItemFromForm();
 
     if (!item.titolo) return;
 
