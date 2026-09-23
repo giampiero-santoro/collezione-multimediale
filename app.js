@@ -436,11 +436,19 @@
     closeModal('scannerModal');
     if (scannerInstance) {
       try {
-        scannerInstance.stop();
+        if (scannerInstance.controls && typeof scannerInstance.controls.stop === 'function') {
+          scannerInstance.controls.stop();
+        }
       } catch (error) {}
       try {
-        scannerInstance.clear();
+        if (scannerInstance.reader && typeof scannerInstance.reader.reset === 'function') {
+          scannerInstance.reader.reset();
+        }
       } catch (error) {}
+      const readerElement = document.getElementById('reader');
+      if (readerElement) {
+        readerElement.innerHTML = '';
+      }
       scannerInstance = null;
     }
   }
@@ -450,7 +458,7 @@
     const statusEl = document.getElementById('scannerStatus');
     statusEl.textContent = 'Posiziona il codice a barre davanti alla fotocamera';
 
-    if (typeof Html5Qrcode === 'undefined') {
+    if (typeof ZXingBrowser === 'undefined' || !ZXingBrowser.BrowserMultiFormatReader) {
       statusEl.textContent = 'Scanner non disponibile. Controlla la connessione o inserisci il codice manualmente.';
       setTimeout(() => {
         closeScanner();
@@ -474,33 +482,55 @@
 
     const readerElement = document.getElementById('reader');
     if (!readerElement) return;
+    readerElement.innerHTML = '<video id="scannerVideo" playsinline autoplay muted style="width:100%;max-height:320px;border-radius:12px;background:#000;"></video>';
 
-    scannerInstance = new Html5Qrcode('reader');
-    const scannerConfig = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1 };
+    const videoElement = document.getElementById('scannerVideo');
+    const codeReader = new ZXingBrowser.BrowserMultiFormatReader();
 
-    scannerInstance.start(
-      { facingMode: 'environment' },
-      scannerConfig,
-      (decodedText) => {
-        statusEl.textContent = `Codice: ${decodedText}`;
-        const isbn = decodedText.replace(/[^0-9X]/gi, '').toUpperCase();
-        scannerInstance.stop().then(() => {
-          enrichFromBarcode(isbn || decodedText);
-        }).catch(() => {
-          enrichFromBarcode(isbn || decodedText);
+    ZXingBrowser.BrowserCodeReader.listVideoInputDevices()
+      .then((videoInputDevices) => {
+        const selectedDeviceId = videoInputDevices[0]?.deviceId || undefined;
+
+        if (!selectedDeviceId) {
+          statusEl.textContent = 'Nessuna webcam rilevata. Prova a usare un dispositivo con fotocamera.';
+          setTimeout(() => {
+            closeScanner();
+            openManualForm();
+          }, 1600);
+          return;
+        }
+
+        codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, error, controls) => {
+          if (result) {
+            statusEl.textContent = `Codice: ${result.getText()}`;
+            scannerInstance = { reader: codeReader, controls };
+            controls.stop();
+            enrichFromBarcode(result.getText());
+            return;
+          }
+
+          if (error && error.name !== 'NotFoundException') {
+            console.debug(error);
+          }
+        }).then((controls) => {
+          scannerInstance = { reader: codeReader, controls };
+        }).catch((error) => {
+          console.error('Scanner error:', error);
+          statusEl.textContent = 'Impossibile avviare la fotocamera. Verifica i permessi del browser e riprova.';
+          setTimeout(() => {
+            closeScanner();
+            openManualForm();
+          }, 1800);
         });
-      },
-      (errorMessage) => {
-        console.debug(errorMessage);
-      }
-    ).catch((error) => {
-      console.error('Scanner error:', error);
-      statusEl.textContent = 'Impossibile avviare la fotocamera. Verifica i permessi del browser e riprova.';
-      setTimeout(() => {
-        closeScanner();
-        openManualForm();
-      }, 1800);
-    });
+      })
+      .catch((error) => {
+        console.error('Scanner init error:', error);
+        statusEl.textContent = 'Impossibile inizializzare il lettore barcode.';
+        setTimeout(() => {
+          closeScanner();
+          openManualForm();
+        }, 1600);
+      });
   }
 
   function normalizeBarcode(code) {
