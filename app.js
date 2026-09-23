@@ -35,6 +35,16 @@ const CATEGORIES = {
 const STORAGE_KEY = 'teca-collezione';   // chiave localStorage per i dati
 const THEME_KEY   = 'teca-theme';        // chiave localStorage per il tema
 
+// Google Books, senza una chiave API, ha ora una quota giornaliera di 0
+// richieste per gli utenti anonimi (limite impostato da Google, non
+// dipende da questa app). Se vuoi riattivarlo come fonte aggiuntiva:
+// 1. vai su https://console.cloud.google.com/apis/credentials
+// 2. crea un progetto (o usane uno esistente), abilita "Books API"
+// 3. crea una API key e incollala qui sotto tra le virgolette
+// Lasciando la stringa vuota, l'app salta semplicemente Google Books
+// e si affida a Open Library (che non richiede alcuna chiave).
+const GOOGLE_BOOKS_API_KEY = '';
+
 /* ==================== 2. STATO E PERSISTENZA LOCALSTORAGE =============== */
 
 // Stato "vivo" dell'applicazione, tenuto in memoria e sincronizzato con
@@ -504,7 +514,14 @@ async function lookupBarcode(rawCode) {
 
 /** Interroga la Google Books API per un ISBN. */
 async function tryGoogleBooks(isbn) {
-  const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}`);
+  // Se non è stata impostata una API key, Google Books risponde comunque
+  // con quota 0 per le richieste anonime: evitiamo la chiamata inutile.
+  if (!GOOGLE_BOOKS_API_KEY) {
+    console.info('[Teca] Google Books saltato: nessuna API key impostata (vedi cima di app.js).');
+    return null;
+  }
+  const keyParam = `&key=${encodeURIComponent(GOOGLE_BOOKS_API_KEY)}`;
+  const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}${keyParam}`);
   if (!response.ok) {
     console.warn('[Teca] Google Books ha risposto con stato', response.status);
     return null;
@@ -523,23 +540,26 @@ async function tryGoogleBooks(isbn) {
   };
 }
 
-/** Interroga Open Library come riserva quando Google Books non ha risultati. */
+/** Interroga Open Library come riserva quando Google Books non ha risultati.
+ *  Usa l'endpoint /search.json, più stabile via browser (CORS) rispetto a
+ *  /api/books, che in alcuni casi restituisce risposte vuote dal client. */
 async function tryOpenLibrary(isbn) {
-  const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${encodeURIComponent(isbn)}&format=json&jscmd=data`);
+  const response = await fetch(`https://openlibrary.org/search.json?isbn=${encodeURIComponent(isbn)}`);
   if (!response.ok) {
     console.warn('[Teca] Open Library ha risposto con stato', response.status);
     return null;
   }
   const data = await response.json();
-  const info = data[`ISBN:${isbn}`];
-  if (!info) return null;
+  const doc = data.docs && data.docs[0];
+  if (!doc) return null;
 
   return {
-    title: info.title || '',
-    author: (info.authors || []).map(a => a.name).join(', '),
-    year: info.publish_date ? parseInt((info.publish_date.match(/\d{4}/) || [])[0], 10) || null : null,
+    title: doc.title || '',
+    author: (doc.author_name || []).join(', '),
+    year: doc.first_publish_year || null,
     notes: '',
-    cover: info.cover ? (info.cover.large || info.cover.medium || '') : '',
+    // covers.openlibrary.org espone le copertine per "cover id" numerico
+    cover: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg` : '',
     barcode: isbn,
   };
 }

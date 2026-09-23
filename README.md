@@ -7,13 +7,26 @@ Applicazione web statica per catalogare libri, fumetti, vinili, CD, DVD, giochi 
 - **I dati restano nel tuo browser.** La collezione viene salvata in `localStorage`: non c'è alcun server che la riceve o la conserva. Se cambi browser, dispositivo o svuoti i dati di navigazione, la collezione locale va perduta — per questo l'app include l'export/import JSON (vedi sotto).
 - **Aggiunta rapida via fotocamera.** Premendo "Aggiungi" → "Scansiona codice a barre" si attiva la fotocamera (tramite la libreria [html5-qrcode](https://github.com/mebjas/html5-qrcode)) per leggere il codice EAN/ISBN stampato sulla confezione.
 - **Compilazione automatica della scheda:**
-  - Se il codice è un **ISBN** (libri e fumetti), l'app interroga **Open Library** e, in caso di esito negativo, la **Google Books API** come riserva.
+  - Se il codice è un **ISBN** (libri e fumetti), l'app interroga **Open Library** (`search.json`, senza bisogno di alcuna chiave) e, solo se hai impostato una API key gratuita, anche **Google Books** come riserva.
   - Per **musica e film** (codici EAN/UPC generici), l'app interroga **MusicBrainz** e, se trova una corrispondenza, tenta di recuperare anche la copertina dal Cover Art Archive collegato.
   - Se nessuna API trova corrispondenze, il codice a barre viene comunque salvato nel campo dedicato e puoi completare la scheda a mano.
 - **Gestione completa (CRUD):** ogni card della griglia si apre in modifica con un click; è possibile aggiornare o eliminare l'elemento (con richiesta di conferma).
 - **Ricerca, filtri e ordinamento:** barra di ricerca su titolo/autore, filtri a chip per categoria con conteggio elementi, ordinamento per data di aggiunta, titolo o anno.
 - **Tema chiaro/scuro:** scuro di default, con interruttore in alto a destra; la preferenza viene ricordata.
 - **Backup e ripristino:** dal menu con l'icona a ingranaggio puoi esportare l'intera collezione in un file `.json` (per sicurezza o per trasferirla su un altro dispositivo) e importarla in un secondo momento, scegliendo se sostituire o unire i dati esistenti.
+
+## Nota importante su Google Books
+
+Da qualche tempo Google ha impostato a **zero** la quota giornaliera per le richieste anonime (senza chiave) alla Books API: senza una chiave, ogni chiamata restituisce l'errore `429 - RESOURCE_EXHAUSTED`. L'app funziona comunque, perché **Open Library non richiede alcuna chiave** ed è la fonte principale per gli ISBN.
+
+Se vuoi comunque riattivare Google Books come fonte aggiuntiva (utile per libri assenti da Open Library):
+
+1. Vai su [Google Cloud Console → Credenziali](https://console.cloud.google.com/apis/credentials) (serve un account Google, è gratuito).
+2. Crea un progetto (o usa uno esistente) e abilita la **"Books API"** dalla libreria API.
+3. Crea una **API key** dalla stessa pagina Credenziali.
+4. Apri `app.js`, trova la riga `const GOOGLE_BOOKS_API_KEY = '';` vicino all'inizio del file, e incolla la chiave tra le virgolette.
+
+Senza questo passaggio, l'app salta semplicemente Google Books e usa solo Open Library, senza generare errori.
 
 ## Struttura del progetto
 
