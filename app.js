@@ -443,30 +443,50 @@ function setLookupStatus(message, type) {
   el.classList.remove('hidden');
 }
 
+/** Rimuove spazi, trattini e ogni carattere che non sia una cifra (o la X finale di alcuni ISBN-10). */
+function cleanCode(code) {
+  return (code || '').replace(/[^0-9Xx]/g, '');
+}
+
 /** Un codice è considerato un ISBN se ha 10 o 13 cifre (EAN-13 dei libri inizia con 978/979). */
 function looksLikeIsbn(code) {
-  const digits = code.replace(/[^0-9Xx]/g, '');
+  const digits = cleanCode(code);
   if (digits.length === 10) return true;
   if (digits.length === 13 && (digits.startsWith('978') || digits.startsWith('979'))) return true;
   return false;
 }
 
 /** Punto di ingresso: prova le API in cascata secondo il tipo di codice individuato. */
-async function lookupBarcode(code) {
+async function lookupBarcode(rawCode) {
+  const code = cleanCode(rawCode);
+  if (!code) {
+    setLookupStatus('Inserisci un codice valido prima di cercare.', 'warn');
+    return;
+  }
+  // Tiene il campo coerente col valore pulito (senza spazi/trattini) usato per la ricerca
+  document.getElementById('field-barcode').value = code;
+
   setLookupStatus('Ricerca dei dati in corso...', 'info');
+  console.info('[Teca] Avvio ricerca per il codice:', code, '— sembra un ISBN:', looksLikeIsbn(code));
+
   try {
     let result = null;
 
     if (looksLikeIsbn(code)) {
       // Libri e fumetti: prima Google Books, poi Open Library come riserva
       result = await tryGoogleBooks(code);
-      if (!result) result = await tryOpenLibrary(code);
+      console.info('[Teca] Risultato Google Books:', result);
+      if (!result) {
+        result = await tryOpenLibrary(code);
+        console.info('[Teca] Risultato Open Library:', result);
+      }
       if (result && !result.category) result.category = 'libro';
     }
 
     if (!result) {
       // Musica, film o codice non riconosciuto come ISBN: prova MusicBrainz
       result = await tryMusicBrainz(code);
+      console.info('[Teca] Risultato MusicBrainz:', result);
     }
 
     if (result) {
@@ -476,15 +496,19 @@ async function lookupBarcode(code) {
       setLookupStatus('Nessun dato trovato online per questo codice: completa i campi manualmente.', 'warn');
     }
   } catch (err) {
-    console.error('Errore durante la ricerca del codice:', err);
-    setLookupStatus('Errore di connessione alle API: completa i campi manualmente.', 'warn');
+    // Un errore qui è quasi sempre di rete/CORS: si vede il dettaglio nella console del browser (F12).
+    console.error('[Teca] Errore durante la ricerca del codice:', err);
+    setLookupStatus('Errore di connessione alle API (vedi console): completa i campi manualmente.', 'warn');
   }
 }
 
 /** Interroga la Google Books API per un ISBN. */
 async function tryGoogleBooks(isbn) {
   const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}`);
-  if (!response.ok) return null;
+  if (!response.ok) {
+    console.warn('[Teca] Google Books ha risposto con stato', response.status);
+    return null;
+  }
   const data = await response.json();
   const info = data.items && data.items[0] && data.items[0].volumeInfo;
   if (!info) return null;
@@ -502,7 +526,10 @@ async function tryGoogleBooks(isbn) {
 /** Interroga Open Library come riserva quando Google Books non ha risultati. */
 async function tryOpenLibrary(isbn) {
   const response = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${encodeURIComponent(isbn)}&format=json&jscmd=data`);
-  if (!response.ok) return null;
+  if (!response.ok) {
+    console.warn('[Teca] Open Library ha risposto con stato', response.status);
+    return null;
+  }
   const data = await response.json();
   const info = data[`ISBN:${isbn}`];
   if (!info) return null;
@@ -520,7 +547,10 @@ async function tryOpenLibrary(isbn) {
 /** Interroga MusicBrainz tramite il codice a barre (EAN/UPC) per musica e film. */
 async function tryMusicBrainz(barcode) {
   const response = await fetch(`https://musicbrainz.org/ws/2/release/?query=barcode:${encodeURIComponent(barcode)}&fmt=json&limit=1`);
-  if (!response.ok) return null;
+  if (!response.ok) {
+    console.warn('[Teca] MusicBrainz ha risposto con stato', response.status);
+    return null;
+  }
   const data = await response.json();
   const release = data.releases && data.releases[0];
   if (!release) return null;
@@ -726,6 +756,17 @@ function init() {
     closeModal('confirm-modal');
   });
   document.getElementById('btn-confirm-delete').addEventListener('click', confirmDelete);
+
+  // --- Ricerca manuale del codice a barre (senza fotocamera) ---
+  document.getElementById('btn-lookup-barcode').addEventListener('click', () => {
+    lookupBarcode(document.getElementById('field-barcode').value);
+  });
+  document.getElementById('field-barcode').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // evita che Invio invii l'intero form
+      lookupBarcode(e.target.value);
+    }
+  });
 
   // --- Scanner ---
   document.getElementById('btn-toggle-scanner').addEventListener('click', () => {

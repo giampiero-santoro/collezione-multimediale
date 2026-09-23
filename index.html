@@ -219,7 +219,14 @@
 
         <div>
           <label class="block text-xs font-medium text-ink-500 dark:text-ink-400 mb-1">Codice a barre</label>
-          <input id="field-barcode" type="text" class="w-full rounded-lg border border-ink-300/60 dark:border-ink-700 bg-white/70 dark:bg-ink-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brass-400/60">
+          <div class="flex gap-2">
+            <input id="field-barcode" type="text" inputmode="numeric" placeholder="es. 9788804668237"
+              class="flex-1 rounded-lg border border-ink-300/60 dark:border-ink-700 bg-white/70 dark:bg-ink-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brass-400/60">
+            <button type="button" id="btn-lookup-barcode"
+              class="shrink-0 rounded-lg border border-brass-400/70 text-brass-600 dark:text-brass-300 hover:bg-brass-500/10 px-3 text-sm font-medium transition-colors">
+              Cerca
+            </button>
+          </div>
         </div>
 
         <div>
