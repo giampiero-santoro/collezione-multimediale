@@ -458,7 +458,7 @@
     const statusEl = document.getElementById('scannerStatus');
     statusEl.textContent = 'Posiziona il codice a barre davanti alla fotocamera';
 
-    if (typeof ZXingBrowser === 'undefined' || !ZXingBrowser.BrowserMultiFormatReader) {
+    if (typeof ZXingBrowser === 'undefined' || !ZXingBrowser.BrowserMultiFormatOneDReader) {
       statusEl.textContent = 'Scanner non disponibile in questo browser. Puoi inserire il codice manualmente.';
       setTimeout(() => {
         closeScanner();
@@ -485,14 +485,17 @@
     readerElement.innerHTML = '<video id="scannerVideo" playsinline autoplay muted style="width:100%;max-height:320px;border-radius:12px;background:#000;"></video>';
 
     const videoElement = document.getElementById('scannerVideo');
-    const codeReader = new ZXingBrowser.BrowserMultiFormatReader();
+    const codeReader = new ZXingBrowser.BrowserMultiFormatOneDReader();
 
     ZXingBrowser.BrowserCodeReader.listVideoInputDevices()
       .then((videoInputDevices) => {
         const selectedDevice = videoInputDevices[0] || null;
         const constraints = {
+          audio: false,
           video: {
-            facingMode: { ideal: 'environment' }
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
           }
         };
 
@@ -510,10 +513,11 @@
           }
 
           if (error && error.name !== 'NotFoundException') {
-            console.debug(error);
+            console.debug('Barcode decode:', error);
           }
         }).then((controls) => {
           scannerInstance = { reader: codeReader, controls };
+          statusEl.textContent = 'Camera attiva: inquadra il codice a barre riempiendo il riquadro';
         }).catch((error) => {
           console.error('Scanner error:', error);
           statusEl.textContent = 'Impossibile avviare la fotocamera. Verifica i permessi del browser e riprova.';
