@@ -396,10 +396,24 @@
 
   function openScanner() {
     openModal('scannerModal');
-    document.getElementById('scannerStatus').textContent = 'Posiziona il codice a barre davanti alla fotocamera';
+    const statusEl = document.getElementById('scannerStatus');
+    statusEl.textContent = 'Posiziona il codice a barre davanti alla fotocamera';
 
     if (typeof Html5Qrcode === 'undefined') {
-      alert('Libreria scanner non caricata');
+      statusEl.textContent = 'Scanner non disponibile. Controlla la connessione o inserisci il codice manualmente.';
+      setTimeout(() => {
+        closeScanner();
+        openManualForm();
+      }, 1400);
+      return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      statusEl.textContent = 'Questo browser non supporta l’accesso alla fotocamera. Usa inserimento manuale.';
+      setTimeout(() => {
+        closeScanner();
+        openManualForm();
+      }, 1400);
       return;
     }
 
@@ -417,7 +431,7 @@
       { facingMode: 'environment' },
       scannerConfig,
       (decodedText) => {
-        document.getElementById('scannerStatus').textContent = `Codice: ${decodedText}`;
+        statusEl.textContent = `Codice: ${decodedText}`;
         const isbn = decodedText.replace(/[^0-9X]/gi, '').toUpperCase();
         scannerInstance.stop().then(() => {
           enrichFromBarcode(isbn || decodedText);
@@ -430,7 +444,11 @@
       }
     ).catch((error) => {
       console.error('Scanner error:', error);
-      document.getElementById('scannerStatus').textContent = 'Impossibile avviare la fotocamera';
+      statusEl.textContent = 'Impossibile avviare la fotocamera. Verifica i permessi del browser e riprova.';
+      setTimeout(() => {
+        closeScanner();
+        openManualForm();
+      }, 1800);
     });
   }
 
