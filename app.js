@@ -459,7 +459,7 @@
     statusEl.textContent = 'Posiziona il codice a barre davanti alla fotocamera';
 
     if (typeof ZXingBrowser === 'undefined' || !ZXingBrowser.BrowserMultiFormatReader) {
-      statusEl.textContent = 'Scanner non disponibile. Controlla la connessione o inserisci il codice manualmente.';
+      statusEl.textContent = 'Scanner non disponibile in questo browser. Puoi inserire il codice manualmente.';
       setTimeout(() => {
         closeScanner();
         openManualForm();
@@ -468,7 +468,7 @@
     }
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      statusEl.textContent = 'Questo browser non supporta l’accesso alla fotocamera. Usa inserimento manuale.';
+      statusEl.textContent = 'Questo browser non supporta l’accesso alla fotocamera. Puoi inserire il codice manualmente.';
       setTimeout(() => {
         closeScanner();
         openManualForm();
@@ -489,18 +489,18 @@
 
     ZXingBrowser.BrowserCodeReader.listVideoInputDevices()
       .then((videoInputDevices) => {
-        const selectedDeviceId = videoInputDevices[0]?.deviceId || undefined;
+        const selectedDevice = videoInputDevices[0] || null;
+        const constraints = {
+          video: {
+            facingMode: { ideal: 'environment' }
+          }
+        };
 
-        if (!selectedDeviceId) {
-          statusEl.textContent = 'Nessuna webcam rilevata. Prova a usare un dispositivo con fotocamera.';
-          setTimeout(() => {
-            closeScanner();
-            openManualForm();
-          }, 1600);
-          return;
+        if (selectedDevice && (selectedDevice.deviceId || selectedDevice.id)) {
+          constraints.video.deviceId = { exact: selectedDevice.deviceId || selectedDevice.id };
         }
 
-        codeReader.decodeFromVideoDevice(selectedDeviceId, videoElement, (result, error, controls) => {
+        codeReader.decodeFromConstraints(constraints, videoElement, (result, error, controls) => {
           if (result) {
             statusEl.textContent = `Codice: ${result.getText()}`;
             scannerInstance = { reader: codeReader, controls };
